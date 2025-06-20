@@ -26,9 +26,10 @@ export default function RegisterPage() {
     try {
       await register(username, email, password);
     } catch (error) {
-      // Error is handled in auth context
+        console.log(error);
     }
   };
+
 
   return (
     <div className="mx-auto max-w-md px-4 py-8">

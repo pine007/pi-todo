@@ -83,15 +83,24 @@ export default function NewTaskPage() {
       try {
         await tasksApi.createTask(taskData);
         router.push('/tasks');
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error('API错误:', apiError);
-        if (apiError.response) {
+        if (
+          apiError &&
+          typeof apiError === 'object' &&
+          'response' in apiError &&
+          apiError.response &&
+          typeof apiError.response === 'object' &&
+          'status' in apiError.response &&
+          'data' in apiError.response
+        ) {
+          // @ts-expect-error: apiError.response is not typed
           setError(`服务器错误: ${apiError.response.status} - ${apiError.response.data?.error || '未知错误'}`);
         } else {
           setError('创建任务失败，请稍后再试');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('创建任务失败', error);
       setError('提交表单时出错');
     } finally {

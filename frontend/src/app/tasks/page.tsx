@@ -1,7 +1,7 @@
 // frontend/src/app/tasks/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { tasksApi, categoriesApi } from '@/lib/api';
@@ -20,7 +20,7 @@ export default function TasksPage() {
   
   // 筛选状态
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter] = useState('');
   
   // 新任务表单状态
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
@@ -52,42 +52,38 @@ export default function TasksPage() {
   }, [user, authLoading, router]);
 
   // 当分类或状态筛选条件变化时重新获取任务
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: Record<string, unknown> = {};
+      if (statusFilter) params.status = statusFilter;
+      if (selectedCategoryId) params.category_id = selectedCategoryId;
+      const response = await tasksApi.getTasks(params);
+      setTasks(response.data);
+    } catch (error: unknown) {
+      console.error('获取任务失败', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, selectedCategoryId]);
+
   useEffect(() => {
     if (user) {
       fetchTasks();
     }
-  }, [selectedCategoryId, statusFilter]);
+  }, [user, fetchTasks]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      
       const [tasksResponse, categoriesResponse] = await Promise.all([
         tasksApi.getTasks(),
         categoriesApi.getCategories()
       ]);
-      
       setTasks(tasksResponse.data);
       setCategories(categoriesResponse.data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('获取数据失败', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      
-      const params: any = {};
-      if (statusFilter) params.status = statusFilter;
-      if (selectedCategoryId) params.category_id = selectedCategoryId;
-      
-      const response = await tasksApi.getTasks(params);
-      setTasks(response.data);
-    } catch (error) {
-      console.error('获取任务失败', error);
     } finally {
       setLoading(false);
     }
@@ -99,7 +95,7 @@ export default function TasksPage() {
     try {
       await tasksApi.deleteTask(id);
       setTasks(tasks.filter(task => task.id !== id));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('删除任务失败', error);
     }
   };
@@ -110,17 +106,13 @@ export default function TasksPage() {
       setTasks(tasks.map(task => 
         task.id === id ? { ...task, status } : task
       ));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('更新任务状态失败', error);
     }
   };
 
   const handleCategorySelect = (categoryId: number | null) => {
     setSelectedCategoryId(categoryId === selectedCategoryId ? null : categoryId);
-  };
-
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value);
   };
 
   const handleNewTaskChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -156,11 +148,7 @@ export default function TasksPage() {
       try {
         const response = await tasksApi.createTask(taskData);
         console.log('创建任务响应:', response);
-        
-        // 添加新任务到列表并刷新
         fetchTasks();
-        
-        // 重置表单
         setNewTask({
           title: '',
           description: '',
@@ -168,20 +156,38 @@ export default function TasksPage() {
           category_id: '',
           due_date: ''
         });
-        
         setSuccess('任务创建成功');
         setShowNewTaskForm(false);
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error('API错误:', apiError);
-        if (apiError.response) {
-          setError(`服务器错误: ${apiError.response.status} - ${apiError.response.data?.error || '未知错误'}`);
-        } else if (apiError.request) {
+        if (
+          apiError &&
+          typeof apiError === 'object' &&
+          'response' in apiError &&
+          apiError.response &&
+          typeof apiError.response === 'object' &&
+          'status' in apiError.response &&
+          'data' in apiError.response
+        ) {
+          const data = (apiError.response as { data?: { error?: string } }).data;
+          setError(`服务器错误: ${apiError.response.status} - ${data?.error || '未知错误'}`);
+        } else if (
+          apiError &&
+          typeof apiError === 'object' &&
+          'request' in apiError
+        ) {
           setError('网络错误: 无法连接到服务器');
+        } else if (
+          apiError &&
+          typeof apiError === 'object' &&
+          'message' in apiError
+        ) {
+          setError(`错误: ${(apiError as { message?: string }).message}`);
         } else {
-          setError(`错误: ${apiError.message}`);
+          setError('创建任务失败');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('创建任务失败', error);
       setError('提交表单时出错');
     } finally {
@@ -211,18 +217,14 @@ export default function TasksPage() {
       
       try {
         await tasksApi.createTask(taskData);
-        
-        // 刷新任务列表
         fetchTasks();
-        
-        // 重置输入
         setQuickTask('');
         setSuccess('任务创建成功');
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error('API错误:', apiError);
         setError('创建任务失败');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('快捷创建任务失败', error);
     } finally {
       setSubmitting(false);

@@ -27,6 +27,8 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
 
+  console.log(error);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/auth/login');
@@ -43,7 +45,7 @@ export default function CategoriesPage() {
       setLoading(true);
       const response = await categoriesApi.getCategories();
       setCategories(response.data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('获取分类失败', error);
     } finally {
       setLoading(false);
@@ -66,9 +68,21 @@ export default function CategoriesPage() {
       setCategories([...categories, response.data]);
       setNewCategory('');
       setSuccess('分类创建成功');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('创建分类失败', error);
-      setError(error.response?.data?.error || '创建分类失败');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || '创建分类失败');
+      } else {
+        setError('创建分类失败');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -104,9 +118,21 @@ export default function CategoriesPage() {
       
       setEditingId(null);
       setSuccess('分类更新成功');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('更新分类失败', error);
-      setError(error.response?.data?.error || '更新分类失败');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || '更新分类失败');
+      } else {
+        setError('更新分类失败');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -127,9 +153,21 @@ export default function CategoriesPage() {
       // 更新本地分类列表
       setCategories(categories.filter(category => category.id !== id));
       setSuccess('分类删除成功');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('删除分类失败', error);
-      setError(error.response?.data?.error || '删除分类失败');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || '删除分类失败');
+      } else {
+        setError('删除分类失败');
+      }
     } finally {
       setSubmitting(false);
     }

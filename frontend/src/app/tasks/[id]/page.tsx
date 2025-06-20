@@ -1,7 +1,7 @@
 // frontend/src/app/tasks/[id]/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -30,35 +30,20 @@ export default function EditTaskPage() {
     due_date: ''
   });
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    if (user && id) {
-      fetchData();
-    }
-  }, [user, authLoading, router, id]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [taskResponse, categoriesResponse] = await Promise.all([
         tasksApi.getTaskById(Number(id)),
         categoriesApi.getCategories()
       ]);
-      
       const taskData = taskResponse.data;
       setTask(taskData);
-      
-      // 格式化日期为HTML datetime-local格式
       let formattedDueDate = '';
       if (taskData.due_date) {
         const date = new Date(taskData.due_date);
-        formattedDueDate = date.toISOString().slice(0, 16); // 格式化为 "YYYY-MM-DDThh:mm"
+        formattedDueDate = date.toISOString().slice(0, 16);
       }
-      
       setFormData({
         title: taskData.title,
         description: taskData.description || '',
@@ -66,7 +51,6 @@ export default function EditTaskPage() {
         category_id: taskData.category_id ? taskData.category_id.toString() : '',
         due_date: formattedDueDate
       });
-      
       setCategories(categoriesResponse.data);
     } catch (error) {
       console.error('Failed to fetch task data', error);
@@ -74,7 +58,17 @@ export default function EditTaskPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login');
+      return;
+    }
+    if (user && id) {
+      fetchData();
+    }
+  }, [user, authLoading, router, id, fetchData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -84,26 +78,34 @@ export default function EditTaskPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
     if (!formData.title.trim()) {
       setError('Title is required');
       return;
     }
-    
     try {
       setSubmitting(true);
-      
-      // 准备提交数据
       const taskData = {
         ...formData,
-        category_id: formData.category_id ? parseInt(formData.category_id) : null
+        category_id: formData.category_id ? parseInt(formData.category_id) : null,
+        status: formData.status as 'pending' | 'in_progress' | 'completed',
       };
-      
       await tasksApi.updateTask(Number(id), taskData);
       router.push('/tasks');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update task', error);
-      setError(error.response?.data?.error || 'Failed to update task');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || 'Failed to update task');
+      } else {
+        setError('Failed to update task');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -111,14 +113,25 @@ export default function EditTaskPage() {
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this task?')) return;
-    
     try {
       setSubmitting(true);
       await tasksApi.deleteTask(Number(id));
       router.push('/tasks');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete task', error);
-      setError(error.response?.data?.error || 'Failed to delete task');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || 'Failed to delete task');
+      } else {
+        setError('Failed to delete task');
+      }
       setSubmitting(false);
     }
   };

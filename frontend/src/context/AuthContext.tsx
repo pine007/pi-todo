@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await authApi.getCurrentUser();
         setUser(response.data);
-      } catch (err) {
+      } catch {
         localStorage.removeItem('token');
       } finally {
         setLoading(false);
@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuth();
   }, []);
+
+
+  console.log(error);
 
   const login = async (email: string, password: string) => {
     try {
@@ -61,11 +64,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       throw new Error('登录响应缺少必要数据');
-    } catch (err: any) {
-      console.error('Login error:', err);
-      const errorMessage = err.response?.data?.error || err.message || '登录失败，请检查您的凭证';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || '登录失败');
+      } else {
+        setError('登录失败');
+      }
+      throw new Error('登录失败，请检查您的凭证');
     } finally {
       setLoading(false);
     }
@@ -87,11 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       throw new Error('注册响应缺少必要数据');
-    } catch (err: any) {
-      console.error('Registration error:', err);
-      const errorMessage = err.response?.data?.error || err.message || '注册失败，请稍后再试';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+      ) {
+        // @ts-expect-error: error.response is not typed
+        setError(error.response.data?.error || '注册失败');
+      } else {
+        setError('注册失败');
+      }
+      throw new Error('注册失败，请稍后再试');
     } finally {
       setLoading(false);
     }
