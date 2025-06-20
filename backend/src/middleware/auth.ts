@@ -9,12 +9,13 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const auth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ error: 'Please authenticate' });
+      res.status(401).json({ error: 'Please authenticate' });
+      return;
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {

@@ -51,13 +51,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       
       const response = await authApi.login({ email, password });
-      localStorage.setItem('token', response.data.token);
-      setUser(response.data.user);
       
-      router.push('/dashboard');
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        setUser(response.data.user);
+        
+        router.push('/dashboard');
+        return;
+      }
+      
+      throw new Error('登录响应缺少必要数据');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
-      throw err;
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.error || err.message || '登录失败，请检查您的凭证';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -69,13 +77,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       
       const response = await authApi.register({ username, email, password });
-      localStorage.setItem('token', response.data.token);
-      setUser(response.data.user);
       
-      router.push('/dashboard');
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        setUser(response.data.user);
+        
+        router.push('/dashboard');
+        return;
+      }
+      
+      throw new Error('注册响应缺少必要数据');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
-      throw err;
+      console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.error || err.message || '注册失败，请稍后再试';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -83,10 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      setLoading(true);
       await authApi.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+      // 即使logout API失败，也要清除本地状态
     } finally {
       localStorage.removeItem('token');
       setUser(null);
+      setLoading(false);
       router.push('/auth/login');
     }
   };

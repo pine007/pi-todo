@@ -3,17 +3,19 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
 // 创建新任务
-export const createTask = async (req: AuthRequest, res: Response) => {
+export const createTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, description, category_id, due_date, status = 'pending' } = req.body;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
+      res.status(400).json({ error: 'Title is required' });
+      return;
     }
 
     const [result]: any = await pool.query(
@@ -38,13 +40,14 @@ export const createTask = async (req: AuthRequest, res: Response) => {
 };
 
 // 获取所有任务
-export const getTasks = async (req: AuthRequest, res: Response) => {
+export const getTasks = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user_id = req.user?.id;
     const { status, category_id } = req.query;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     let query = 'SELECT t.*, c.name as category_name FROM tasks t LEFT JOIN categories c ON t.category_id = c.id WHERE t.user_id = ?';
@@ -72,13 +75,14 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
 };
 
 // 获取单个任务
-export const getTaskById = async (req: AuthRequest, res: Response) => {
+export const getTaskById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     const [tasks]: any = await pool.query(
@@ -87,7 +91,8 @@ export const getTaskById = async (req: AuthRequest, res: Response) => {
     );
 
     if (tasks.length === 0) {
-      return res.status(404).json({ error: 'Task not found' });
+      res.status(404).json({ error: 'Task not found' });
+      return;
     }
 
     res.json(tasks[0]);
@@ -98,14 +103,15 @@ export const getTaskById = async (req: AuthRequest, res: Response) => {
 };
 
 // 更新任务
-export const updateTask = async (req: AuthRequest, res: Response) => {
+export const updateTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { title, description, status, category_id, due_date } = req.body;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     // 验证任务存在且属于当前用户
@@ -115,7 +121,8 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
     );
 
     if (tasks.length === 0) {
-      return res.status(404).json({ error: 'Task not found' });
+      res.status(404).json({ error: 'Task not found' });
+      return;
     }
 
     const task = tasks[0];
@@ -148,13 +155,14 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 };
 
 // 删除任务
-export const deleteTask = async (req: AuthRequest, res: Response) => {
+export const deleteTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     const [result]: any = await pool.query(
@@ -163,7 +171,8 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Task not found' });
+      res.status(404).json({ error: 'Task not found' });
+      return;
     }
 
     res.json({ message: 'Task deleted successfully' });

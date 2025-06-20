@@ -3,12 +3,13 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
 // 获取任务统计信息
-export const getTaskStats = async (req: AuthRequest, res: Response) => {
+export const getTaskStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     // 按状态统计任务数量

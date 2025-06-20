@@ -5,13 +5,14 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
 // 注册新用户
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password } = req.body;
 
     // 验证请求数据
     if (!username || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      res.status(400).json({ error: 'All fields are required' });
+      return;
     }
 
     // 检查用户是否已存在
@@ -21,7 +22,8 @@ export const register = async (req: Request, res: Response) => {
     );
 
     if (existingUsers.length > 0) {
-      return res.status(400).json({ error: 'Username or email already exists' });
+      res.status(400).json({ error: 'Username or email already exists' });
+      return;
     }
 
     // 加密密码
@@ -56,13 +58,14 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // 用户登录
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     // 验证请求数据
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
     }
 
     // 查找用户
@@ -72,7 +75,8 @@ export const login = async (req: Request, res: Response) => {
     );
 
     if (users.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
     }
 
     const user = users[0];
@@ -80,7 +84,8 @@ export const login = async (req: Request, res: Response) => {
     // 验证密码
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
     }
 
     // 生成 JWT token
@@ -106,12 +111,13 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // 获取当前用户信息
-export const getCurrentUser = async (req: AuthRequest, res: Response) => {
+export const getCurrentUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     const [users]: any = await pool.query(
@@ -120,7 +126,8 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
     );
 
     if (users.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
     res.json(users[0]);
@@ -131,7 +138,7 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
 };
 
 // 用户注销 - 在实际应用中，这通常是在客户端处理的，但提供一个后端端点可能有用
-export const logout = async (_req: Request, res: Response) => {
+export const logout = async (_req: Request, res: Response): Promise<void> => {
   // JWT 是无状态的，所以从服务器端注销只需返回成功消息
   // 客户端负责删除存储的令牌
   res.json({ message: 'Logged out successfully' });

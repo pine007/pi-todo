@@ -3,17 +3,19 @@ import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
 // 创建新分类
-export const createCategory = async (req: AuthRequest, res: Response) => {
+export const createCategory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name } = req.body;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     if (!name) {
-      return res.status(400).json({ error: 'Category name is required' });
+      res.status(400).json({ error: 'Category name is required' });
+      return;
     }
 
     // 检查是否已存在同名分类
@@ -23,7 +25,8 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
     );
 
     if (existingCategories.length > 0) {
-      return res.status(400).json({ error: 'Category with this name already exists' });
+      res.status(400).json({ error: 'Category with this name already exists' });
+      return;
     }
 
     const [result]: any = await pool.query(
@@ -44,12 +47,13 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
 };
 
 // 获取所有分类
-export const getCategories = async (req: AuthRequest, res: Response) => {
+export const getCategories = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     // 获取分类及每个分类的任务数量
@@ -70,18 +74,20 @@ export const getCategories = async (req: AuthRequest, res: Response) => {
 };
 
 // 更新分类
-export const updateCategory = async (req: AuthRequest, res: Response) => {
+export const updateCategory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { name } = req.body;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     if (!name) {
-      return res.status(400).json({ error: 'Category name is required' });
+      res.status(400).json({ error: 'Category name is required' });
+      return;
     }
 
     // 检查分类是否存在且属于当前用户
@@ -91,7 +97,8 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
     );
 
     if (categories.length === 0) {
-      return res.status(404).json({ error: 'Category not found' });
+      res.status(404).json({ error: 'Category not found' });
+      return;
     }
 
     // 检查新名称是否与其他分类冲突
@@ -101,7 +108,8 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
     );
 
     if (existingCategories.length > 0) {
-      return res.status(400).json({ error: 'Category with this name already exists' });
+      res.status(400).json({ error: 'Category with this name already exists' });
+      return;
     }
 
     await pool.query(
@@ -121,13 +129,14 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
 };
 
 // 删除分类
-export const deleteCategory = async (req: AuthRequest, res: Response) => {
+export const deleteCategory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const user_id = req.user?.id;
 
     if (!user_id) {
-      return res.status(401).json({ error: 'Not authorized' });
+      res.status(401).json({ error: 'Not authorized' });
+      return;
     }
 
     const [result]: any = await pool.query(
@@ -136,7 +145,8 @@ export const deleteCategory = async (req: AuthRequest, res: Response) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Category not found' });
+      res.status(404).json({ error: 'Category not found' });
+      return;
     }
 
     // 分类被删除后，相关任务的 category_id 会自动设为 NULL (通过外键约束)

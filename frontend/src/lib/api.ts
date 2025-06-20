@@ -5,8 +5,10 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json'
   },
-  withCredentials: true
+  withCredentials: true,
+  timeout: 10000 // 设置请求超时为10秒
 });
 
 // 请求拦截器 - 添加认证 token
@@ -18,6 +20,13 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
+    // 添加时间戳，避免缓存问题
+    if (config.method?.toLowerCase() === 'get') {
+      config.params = {
+        ...config.params,
+        _t: Date.now()
+      };
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -27,13 +36,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 网络错误处理
+    if (!error.response) {
+      console.error('Network error:', error.message);
+      return Promise.reject(new Error('网络错误，请检查您的网络连接'));
+    }
+    
     // 如果是认证错误，清除 token 并重定向到登录页
-    if (error.response?.status === 401) {
+    if (error.response.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         window.location.href = '/auth/login';
       }
     }
+    
+    // 服务器错误处理
+    if (error.response.status >= 500) {
+      console.error('Server error:', error.response.data);
+      return Promise.reject(new Error('服务器错误，请稍后再试'));
+    }
+    
     return Promise.reject(error);
   }
 );
